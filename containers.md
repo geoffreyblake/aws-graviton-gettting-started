@@ -29,14 +29,15 @@ We have compiled a list of popular software within the container ecosystem that 
 
 | Name                      | URL                           | Comment                |
 | :-----                    |:-----                         | :-----                 |
-| Istio	| https://github.com/istio/istio/releases/	| arm64 binaries as of 1.6.x release series|
-| Envoy	| https://www.envoyproxy.io/docs/envoy/latest/install/building#arm64-binaries | [envoyproxy-dev](https://hub.docker.com/r/envoyproxy/envoy-dev/tags/) is multiarch |
+| Istio	| https://github.com/istio/istio/releases/	| 1) arm64 binaries as of 1.6.x release series<br>2) [Istio container build instructions](https://github.com/aws/aws-graviton-getting-started/blob/main/containers-workarounds.md#Istio)|
+| Envoy	| https://www.envoyproxy.io/docs/envoy/v1.18.3/start/docker ||
 | Traefik | https://github.com/containous/traefik/releases	|| 	 
 | Flannel | https://github.com/coreos/flannel/releases	 ||	 
 | Helm | https://github.com/helm/helm/releases/tag/v2.16.9 || 
 | Jaeger | https://github.com/jaegertracing/jaeger/pull/2176 | [dockerhub images are not yet multiarch](https://github.com/jaegertracing/jaeger/issues/2292)	| 
 | Fluent-bit |https://github.com/fluent/fluent-bit/releases/ | compile from source |
 | core-dns |https://github.com/coredns/coredns/releases/ | | 
+| external-dns | https://github.com/kubernetes-sigs/external-dns/blob/master/docs/faq.md#which-architectures-are-supported | support from 0.7.5+ |
 | Prometheus | https://prometheus.io/download/	 	 | |
 |containerd	 | https://github.com/containerd/containerd/issues/3664 |	nightly builds provided for arm64 | 
 | kube-state-metrics | https://github.com/kubernetes/kube-state-metrics/issues/1037 | use k8s.gcr.io/kube-state-metrics/kube-state-metrics:v2.0.0-beta for arm64 |  
@@ -47,7 +48,8 @@ We have compiled a list of popular software within the container ecosystem that 
 |Cri-o	 | 	https://github.com/cri-o/cri-o/blob/master/README.md#installing-crio | tested on Ubuntu 18.04 and 20.04	|
 |Trivy	 | 	https://github.com/aquasecurity/trivy/releases/	 	 | |
 |Argo	 | 	https://github.com/argoproj/argo/releases/	 	 	 | |
-|Cilium	| https://cilium.io/blog/2020/06/22/cilium-18/#arm64 | initial support |	 
+|Cilium	| https://docs.cilium.io/en/stable/contributing/development/images/ |  Multi arch supported from v 1.10.0 |	 
+|Calico	| https://hub.docker.com/r/calico/node/tags?page=1&ordering=last_updated |  Multi arch supported on master |	 
 |Tanka	 | 	https://github.com/grafana/tanka/releases	 	 | |
 |Consul	 | 	https://www.consul.io/downloads	 	 | |
 |Nomad	 | 	https://www.nomadproject.io/downloads	| | 	 
@@ -55,6 +57,7 @@ We have compiled a list of popular software within the container ecosystem that 
 |Vault	 | 	https://www.vaultproject.io/downloads	| | 
 |Terraform | https://github.com/hashicorp/terraform/issues/14474 | arm64 support as of v0.14.0 | 	 	 
 |Flux	 | 	https://github.com/fluxcd/flux/releases/ | |
+|Pulumi | https://github.com/pulumi/pulumi/issues/4868 | arm64 support as of v2.23.0 |
 |New Relic	 | 	https://download.newrelic.com/infrastructure_agent/binaries/linux/arm64/ | |
 |Datadog - EC2	 | 	https://www.datadoghq.com/blog/datadog-arm-agent/ ||
 |Datadog - Docker	 | 	https://hub.docker.com/r/datadog/agent-arm64	|| 	 
@@ -109,7 +112,7 @@ If using the Kubernetes [Cluster Autoscaler](https://github.com/kubernetes/autos
 
 * [Building multi-arch docker images with buildx](https://tech.smartling.com/building-multi-architecture-docker-images-on-arm-64-c3e6f8d78e1c)
 * [Unifying Arm software development with Docker](https://community.arm.com/developer/tools-software/tools/b/tools-software-ides-blog/posts/unifying-arm-software-development-with-docker)
-* [Modern multi-arch builds with docker](https://duske.me/modern-multiarch-builds-with-docker/)
+* [Modern multi-arch builds with docker](https://duske.me/posts/modern-multiarch-builds-with-docker/)
 * [Leveraging Spot and Graviton2 with EKS](https://spot.io/blog/eks-simplified-on-ec2-graviton2-instances/)
 
 

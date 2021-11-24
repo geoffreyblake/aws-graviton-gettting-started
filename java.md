@@ -15,10 +15,15 @@ different sources.  [Amazon Corretto](https://aws.amazon.com/corretto/) is
 continuing to improve performance of Java workloads running on Graviton processors and
 if you have the choice of a JDK to use we recommend using Corretto as it
 provides the fastest way to get access to the performance improvements AWS is making.
+
 Versions of Corretto released since October 2020 are built to use the
 most optimal atomic operations within the JVM: Corretto11 (all
 variants); Correto8 (on Amazon Linux 2 only). This has shown to reduce
 GC time in some workloads, and avoids contention in net-intensive workloads like Apache Kafka.
+
+Versions of Corretto11 (>=11.0.12) come with additional enhancements to improve
+performance on workloads with light to moderate lock-contention: improved spin-lock behavior inside the JVM,
+enhanced implementation of `Thread.onSpinWait()` on Graviton2.
 
 ### Java JVM Options
 There are numerous options that control the JVM and may lead to better performance. Three that
@@ -26,6 +31,35 @@ have shown large (1.5x) improvements in some Java workloads are eliminating tier
 and restricting the size of the code cache which allows the Graviton2 cores to better predict
 branches. These are helpful on some workloads but can hurt on others so testing with and without
 them is essential: `-XX:-TieredCompilation -XX:ReservedCodeCacheSize=64M -XX:InitialCodeCacheSize=64M`.
+
+### Java Stack Size
+The default stack size for Java threads (i.e. `ThreadStackSize`) is 2mb on aarch64 (compared to 1mb on x86_64). You can check the default with:
+```
+$ java -XX:+PrintFlagsFinal -version | grep ThreadStackSize
+     intx CompilerThreadStackSize = 2048  {pd product} {default}
+     intx ThreadStackSize         = 2048  {pd product} {default}
+     intx VMThreadStackSize       = 2048  {pd product} {default}
+```
+The default can be easily changed on the command line with either `-XX:ThreadStackSize=<kbytes>` or `-Xss<bytes>`. Notice that `-XX:ThreadStackSize` interprets its argument as kilobytes whereas `-Xss` interprets it as bytes. So `-XX:ThreadStackSize=1024` and `-Xss1m` will both set the stack size for Java threads to 1 megabyte:
+```
+$ java -Xss1m -XX:+PrintFlagsFinal -version | grep ThreadStackSize
+     intx CompilerThreadStackSize                  = 2048                                   {pd product} {default}
+     intx ThreadStackSize                          = 1024                                   {pd product} {command line}
+     intx VMThreadStackSize                        = 2048                                   {pd product} {default}
+```
+
+Usually, there's no need to change the default, because the thread stack will be committed lazily as it grows. So no matter what's the default, the thread will always only commit as much stack as it really uses (at page size granularity). However there's one exception to this rule if [Transparent Huge Pages](https://www.kernel.org/doc/html/latest/admin-guide/mm/transhuge.html) (THP) are turned on by default on a system. In such a case the THP page size of 2mb matches exactly with the 2mb default stack size on aarch64 and most stacks will be backed up by a single huge page of 2mb. This means that the stack will be completely committed to memory right from the start. If you're using hundreds or even thousands of threads, this memory overhead can be considerable.
+
+To mitigate this issue, you can either manually change the stack size on the command line (as described above) or you can change the default for THP from `always` to `madvise` on Linux distributions like AL2 (with Linux kernel 5 and higher) on which the setting defaults to `always`:
+```
+# cat /sys/kernel/mm/transparent_hugepage/enabled
+[always] madvise never
+# echo madvise > /sys/kernel/mm/transparent_hugepage/enabled
+# cat /sys/kernel/mm/transparent_hugepage/enabled
+always [madvise] never
+```
+
+Notice that even if the the default is changed from `always` to `madvise`, the JVM can still use THP for the Java heap and code cache if you specify `-XX:+UseTransparentHugePages` on the command line.
 
 ### Looking for x86 shared-objects in JARs
 Java JARs can include shared-objects that are architecture specific. Some Java libraries check
@@ -37,7 +71,7 @@ A quick way to check if a JAR contains such shared objects is to simply unzip it
 any of the resulting files are shared-objects and if an aarch64 (arm64) shared-object is missing:
 ```
 $ unzip foo.jar
-$ find . -name "*.so" | xargs file
+$ find . -name "*.so" -exec file {} \;
 ```
 For each x86-64 ELF file, check there is a corresponding aarch64 ELF file
 in the binaries. With some common packages (e.g. commons-crypto) we've seen that
@@ -91,7 +125,6 @@ $ mvn package
 # To do a release to Maven Central and/or Sonatype Nexus:
 $ mvn release:prepare
 $ mvn release:perform
-
 ```
 
 This is one way to do the JAR packaging with all the libraries in a single JAR.  To build all the JARs, we recommend to build on native
@@ -123,4 +156,31 @@ $ perf inject -j -i perf.data -o perf.data.jit
 
 # Process the new file, for instance via Brendan Gregg's Flamegraph tools
 $ perf script -i perf.data.jit | ./FlameGraph/stackcollapse-perf.pl | ./FlameGraph/flamegraph.pl > ./flamegraph.svg
+```
+
+### Build libperf-jvmti.so on Amazon Linux 2
+Amazon Linux 2 does not package `libperf-jvmti.so` by default with the `perf` yum package.  
+Build the `libperf-jvmti.so` shared library using the following steps:
+
+```bash
+$ sudo amazon-linux-extras enable corretto8
+$ sudo yum install -y java-1.8.0-amazon-corretto-devel
+
+$ cd $HOME
+$ sudo yumdownloader --source kernel
+
+$ cat > .rpmmacros << __EOF__
+%_topdir    %(echo $HOME)/kernel-source
+__EOF__
+
+$ rpm -ivh ./kernel-*.amzn2.src.rpm
+$ sudo yum-builddep kernel
+$ cd kernel-source/SPECS
+$ rpmbuild -bp kernel.spec
+
+$ cd ../BUILD
+$ cd kernel-*.amzn2
+$ cd linux-*.amzn2.aarch64
+$ cd tools/perf
+$ make
 ```

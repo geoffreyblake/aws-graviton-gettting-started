@@ -1,6 +1,6 @@
 # Python on Graviton
 
-Python is an interpreted, high-level, general-purpose programming language, with interpreters available for many operating systems and architectures, including arm64. _[Wikipedia](https://en.wikipedia.org/wiki/Python_(programming_language))_
+Python is an interpreted, high-level, general-purpose programming language, with interpreters available for many operating systems and architectures, including arm64. _[Read more on Wikipedia](https://en.wikipedia.org/wiki/Python_(programming_language))_
 
 ## 1. Installing Python packages
 
@@ -8,7 +8,7 @@ When *pip* (the standard package installer for Python) is used, it pulls the pac
 
 In the case *pip* could not find a pre-compiled package, it automatically downloads, compiles, and builds the package from source code. 
 Normally it may take a few more minutes to install the package from source code than from pre-built.  For some large packages (i.e. *pandas*)
-it may take up to 20 minutes. AWS is actively working to make pre-compiled packages available to avoid this in near future.
+it may take up to 20 minutes. AWS is actively working to make pre-compiled packages available to avoid this in near future. In some cases, compilation may fail due to missing dependencies.
 
 ### 1.1 Prerequisites for installing Python packages from source
 
@@ -26,6 +26,38 @@ sudo apt update
 sudo apt-get install build-essential python3-pip python3-dev libblas-dev gfortran liblapack-dev
 python3 -m pip install --user --upgrade pip
 ```
+
+On all distributions, additionnal compile time dependencies might be needed depending on the Python modules you are trying to install.
+
+### 1.2 Recommended versions
+
+When adopting Graviton2, it is recommended to use recent software versions as much as possible, and Python is no exception.
+
+Python 2.7 is EOL since January the 1st 2020, it is definitely recommended to upgrade to a Python 3.x version before moving to Graviton2.
+
+Python 3.6 will reach [EOL in December, 2021](https://www.python.org/dev/peps/pep-0494/#lifespan), so when starting to port an application to Graviton2, it is recommended to target at least Python 3.7.
+
+### 1.3 Python on Centos 8 and RHEL 8
+
+Centos 8 and RHEL 8 distribute Python 3.6 which is
+[scheduled for end of life in December, 2021](https://www.python.org/dev/peps/pep-0494/#lifespan).
+However as of May 2021, some package maintainers have already begun dropping support for
+Python 3.6 by ommitting prebuilt wheels published to [pypi.org](https://pypi.org).
+For some packages, it is still possible to use Python 3.6 by using the distribution
+from the package manager. For example `numpy` no longer publishes Python 3.6 wheels,
+but can be installed from the package manager: `yum install python3-numpy`.
+
+Another option is to use Python 3.8 instead of the default Python pacakge. You can
+install Python 3.8 with pip: `yum install python38-pip`. Then use pip to install
+the latest versions of packages: `pip3 install numpy`.
+
+Some common Python packages that are distributed by the package manager are:
+1. python3-numpy
+2. python3-markupsafe
+3. python3-pillow
+
+To see a full list run: `yum search python3`
+
 
 ## 2. Scientific and numerical application (NumPy, SciPy, BLAS, etc)
 
@@ -122,6 +154,41 @@ use a single thread.
 To enable parallelism with BLIS, one needs to both configure with
 `--enable-threading=openmp` and set the environment variable `BLIS_NUM_THREADS`
 to the number of threads to use, the default is to use a single thread.
+
+### 2.6 Graviton2 support in Conda / Anaconda
+Anaconda is a distribution of the Python and R programming languages for scientific computing, that aims to simplify package management and deployment.
+
+Anaconda has announced [support for AWS Graviton2 on May 14, 2021](https://www.anaconda.com/blog/anaconda-aws-graviton2).
+
+Instructions to install the full Anaconda package installer can be found at https://docs.anaconda.com/anaconda/install/graviton2/ .
+
+Anaconda also offers a lightweight version called [Miniconda](https://docs.conda.io/en/latest/miniconda.html) which is a small, bootstrap version of Anaconda that includes only conda, Python, the packages they depend on, and a small number of other useful packages, including pip, zlib and a few others.
+
+Here is an example on how to use it to install [numpy](https://numpy.org/) and [pandas](https://pandas.pydata.org/) for Python 3.9.
+
+The first step is to install conda:
+```
+$ wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.10.3-Linux-aarch64.sh
+$ chmod a+x chmod a+x Miniconda3-py39_4.10.3-Linux-aarch64.sh
+$ ./Miniconda3-py39_4.10.3-Linux-aarch64.sh
+```
+
+Once installed, you can either use the `conda` command directly to install packages, or write an environment definition file and create the corresponding environment.
+
+Here's an example to install [numpy](https://numpy.org/) and [pandas](https://pandas.pydata.org/) (`graviton-example.yml`):
+```
+name: graviton-example
+dependencies:
+  - numpy
+  - pandas
+```
+
+The next step is to instanciate the environment from that definition:
+```
+$ conda env create -f graviton-example.yml
+```
+
+And you can now use numpy and pandas for Python 3.9.
 
 ## 3. Other common Python packages
 
